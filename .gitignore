@@ -1,0 +1,56 @@
+# .NET Core
+bin/
+obj/
+*.user
+*.suo
+*.userprefs
+.vs/
+.vscode/
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+build/
+bld/
+[Bb]in/
+[Oo]bj/
+
+# NuGet Packages
+*.nupkg
+**/packages/*
+
+# Test results
+TestResults/
+*.trx
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# IDE files
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+
+# Runtime directories
+wwwroot/uploads/
+tessdata/
+temp/
+
+# User-specific files
+appsettings.local.json
+*.pfx
+*.p12
+*.cer
