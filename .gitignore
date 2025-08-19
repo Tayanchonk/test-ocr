@@ -1,0 +1,17 @@
+bin/
+obj/
+.vs/
+.vscode/
+*.user
+*.suo
+*.cache
+*.log
+*.tmp
+packages/
+TestResults/
+*.nupkg
+.DS_Store
+Thumbs.db
+tessdata/
+uploads/
+temp/
