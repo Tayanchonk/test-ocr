@@ -135,6 +135,7 @@ namespace OcrApi.Controllers
                 }
 
                 // บันทึกผลลัพธ์ลงในฐานข้อมูล
+                DocumentData documentData = null;
                 if (result != null)
                 {
                     try
@@ -144,7 +145,7 @@ namespace OcrApi.Controllers
                         _logger.LogInformation("OCR result saved to database successfully. ID: {Id}", result.Id);
                         
                         // บันทึกข้อมูลลงในตาราง DocumentData
-                        var documentData = await _databaseService.CreateDocumentDataFromOcrResultAsync(result, customsReceipt);
+                        documentData = await _databaseService.CreateDocumentDataFromOcrResultAsync(result, customsReceipt);
                         _logger.LogInformation("Document data saved to database successfully. ID: {Id}", documentData.Id);
                         
                         // บันทึก CustomsReceipt ลงในฐานข้อมูลหากเป็นใบเสร็จกรมศุลกากร
@@ -161,6 +162,7 @@ namespace OcrApi.Controllers
                 }
                 
                 // สร้าง response แบบมีรายละเอียด
+                string baseUrl = $"{Request.Scheme}://{Request.Host.Value}";
                 var response = new
                 {
                     id = result?.Id,
@@ -172,6 +174,21 @@ namespace OcrApi.Controllers
                     confidenceScore = result?.ConfidenceScore,
                     extractedText = result?.ExtractedText,
                     isCustomsReceipt = isCustomsReceipt,
+                    pdfLinks = documentData != null ? new
+                    {
+                        documentPdf = $"{baseUrl}/api/pdf/document-data/{documentData.Id}",
+                        ocrPdf = $"{baseUrl}/api/pdf/ocr-result/{result.Id}",
+                        financialPdf = $"{baseUrl}/api/pdf/financial-data/{result.Id}"
+                    } : null,
+                    documentData = documentData != null ? new { 
+                        id = documentData.Id,
+                        documentType = documentData.DocumentType,
+                        totalAmount = documentData.TotalAmount
+                    } : null,
+                    downloadLinks = new {
+                        pdfUrl = result != null ? $"/api/pdf/ocr-result/{result.Id}" : null,
+                        documentDataPdfUrl = documentData != null ? $"/api/pdf/document-data/{documentData.Id}" : null
+                    },
                     customsReceipt = isCustomsReceipt ? new
                     {
                         documentType = customsReceipt?.DocumentType,

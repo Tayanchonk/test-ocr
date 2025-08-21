@@ -46,6 +46,7 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddSingleton<IOcrService, TesseractOcrService>();
 builder.Services.AddSingleton<IProcessingService, ProcessingService>();
 builder.Services.AddSingleton<ICustomsReceiptParser, CustomsReceiptParser>();
+builder.Services.AddScoped<IPdfService, PdfService>();
 
 // ลงทะเบียน DbContext สำหรับการเชื่อมต่อกับ SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
