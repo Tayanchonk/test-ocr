@@ -49,7 +49,6 @@ namespace OcrApi.Services
             {
                 _logger.LogError(ex, "Error reading file {FileName}", file.FileName);
                 result.Status = ProcessingStatus.Failed;
-                result.Errors.Add($"Failed to read file: {ex.Message}");
                 result.ProcessedAt = DateTime.UtcNow;
                 return result.Id;
             }
@@ -86,7 +85,6 @@ namespace OcrApi.Services
                 {
                     _logger.LogError(ex, "Error processing file {FileName}", result.FileName);
                     result.Status = ProcessingStatus.Failed;
-                    result.Errors.Add(ex.Message);
                 }
                 finally
                 {

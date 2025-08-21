@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customs Receipt OCR Tester</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="file"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea {
+            min-height: 200px;
+            resize: vertical;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            white-space: pre-wrap;
+        }
+        .tab-buttons {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        .tab-button {
+            padding: 10px 20px;
+            border: 1px solid #ddd;
+            background-color: #f1f1f1;
+            cursor: pointer;
+            border-radius: 4px 4px 0 0;
+            margin-right: 5px;
+        }
+        .tab-button.active {
+            background-color: white;
+            border-bottom: 1px solid white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Customs Receipt OCR Tester</h1>
+        
+        <div class="tab-buttons">
+            <div class="tab-button active" onclick="showTab('uploadTab')">Upload File</div>
+            <div class="tab-button" onclick="showTab('textTab')">Process Text</div>
+        </div>
+        
+        <div id="uploadTab" class="tab-content active">
+            <div class="form-group">
+                <label for="fileUpload">Upload Image or PDF:</label>
+                <input type="file" id="fileUpload" accept=".jpg,.jpeg,.png,.pdf">
+            </div>
+            <button onclick="uploadFile()">Process File</button>
+        </div>
+        
+        <div id="textTab" class="tab-content">
+            <div class="form-group">
+                <label for="ocrText">OCR Text:</label>
+                <textarea id="ocrText" placeholder="Paste OCR text here...">A ) o 7 ~
+| ร ใบ เส ร ็ จ ร ั บ เง ิ น
+ห ผ่ ก ศก ,. 122
+Hawb ฟ ผด. 1746172551 |
+ชื ่ อ ย า น พ า ห น ะ 07556 ก ร ม ศุ ด ก า ก ร
+เล ข ป ร ะ จ ํ า ต ั ว ผู ้ เส ี ย ภา ษี อ า ก ร 0105533022910/000000 ง ั น ท ี ่ น ํ า เข ้ า / ส ่ ง อ อ ก 25-01-2566 
+งื ่ ล ผู้ น ํ า ขอ ง เข ้ า / ผ ู ้ ส ่ ง ขอ ง อ อ ก DHL EXPRESS (โห ล 1 ) LTD.
+เล ข ท ี ่ ชํา ร ะ อ า ก ร / ว ั น เด ื อ น ป ี 1818-061169/27-01-66(03/03)
+A025-X660100256 (1193)
+ค ่ า อ า ก ร ขา เข ้ า - 937.63
+ค ํ า ภา ษี ม ู ล ค ่ า เพ ิ ่ ม 65.64
+1.00
+รวมเงินทั้งสิ้น 1,004.47
+น ว น เง ิ น ต ั ว อ ั ก ษ ร หนึ่งพันสี่บาทสี่สิบเจ็ดสตางค์
+ล ง ชื อ ผู ้ ร ั บ เง ิ น ว ั ชน ี
+( เก ต จ นา )</textarea>
+            </div>
+            <button onclick="processText()">Process Text</button>
+        </div>
+        
+        <div class="result" id="result">Results will appear here...</div>
+    </div>
+
+    <script>
+        const apiBaseUrl = 'http://localhost:5000/api/ocr';
+
+        function showTab(tabId) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Deactivate all tab buttons
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Show the selected tab
+            document.getElementById(tabId).classList.add('active');
+            
+            // Activate the clicked tab button
+            event.currentTarget.classList.add('active');
+        }
+
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileUpload');
+            const resultDiv = document.getElementById('result');
+            
+            if (!fileInput.files || fileInput.files.length === 0) {
+                resultDiv.textContent = 'Please select a file to upload.';
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            resultDiv.textContent = 'Processing file...';
+            
+            try {
+                const response = await fetch(`${apiBaseUrl}/upload-customs-receipt`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.textContent = JSON.stringify(data, null, 2);
+                } else {
+                    resultDiv.textContent = `Error: ${JSON.stringify(data)}`;
+                }
+            } catch (error) {
+                resultDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        async function processText() {
+            const textInput = document.getElementById('ocrText');
+            const resultDiv = document.getElementById('result');
+            
+            if (!textInput.value.trim()) {
+                resultDiv.textContent = 'Please enter some OCR text to process.';
+                return;
+            }
+            
+            resultDiv.textContent = 'Processing text...';
+            
+            try {
+                const response = await fetch(`${apiBaseUrl}/custom-ocr-by-copilot`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        text: textInput.value
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.textContent = JSON.stringify(data, null, 2);
+                } else {
+                    resultDiv.textContent = `Error: ${JSON.stringify(data)}`;
+                }
+            } catch (error) {
+                resultDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

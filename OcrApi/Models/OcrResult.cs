@@ -9,7 +9,6 @@ namespace OcrApi.Models
         public string? ExtractedText { get; set; }
         public FinancialDocumentData? FinancialData { get; set; }
         public DateTime ProcessedAt { get; set; } = DateTime.UtcNow;
-        public List<string> Errors { get; set; } = new();
         public double ConfidenceScore { get; set; }
     }
 

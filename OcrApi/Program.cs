@@ -1,4 +1,18 @@
 using OcrApi.Services;
+using OcrApi;
+using Microsoft.EntityFrameworkCore;
+using OcrApi.Data;
+
+// Check if testing mode is enabled (for running the sample test)
+var commandArgs = Environment.GetCommandLineArgs();
+bool testMode = commandArgs.Length > 1 && commandArgs[1] == "--test";
+
+if (testMode)
+{
+    // Run the test sample
+    TestSample.RunTest();
+    return;
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,6 +45,14 @@ builder.Services.AddSwaggerGen(c =>
 // Register OCR services
 builder.Services.AddSingleton<IOcrService, TesseractOcrService>();
 builder.Services.AddSingleton<IProcessingService, ProcessingService>();
+builder.Services.AddSingleton<ICustomsReceiptParser, CustomsReceiptParser>();
+
+// ลงทะเบียน DbContext สำหรับการเชื่อมต่อกับ SQL Server
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// ลงทะเบียน Database Service
+builder.Services.AddScoped<IDatabaseService, DatabaseService>();
 
 // Configure CORS if needed
 builder.Services.AddCors(options =>
@@ -46,18 +68,21 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "OCR API v1");
-        c.RoutePrefix = string.Empty; // Set Swagger UI at the app's root
-    });
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "OCR API v1");
+    c.RoutePrefix = "swagger"; // Set Swagger UI at /swagger
+});
 
-app.UseHttpsRedirection();
+// Comment out HTTPS redirection to avoid the warning
+// app.UseHttpsRedirection();
 app.UseCors();
+
+// Add static files support
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.MapControllers();
 
 app.Run();
