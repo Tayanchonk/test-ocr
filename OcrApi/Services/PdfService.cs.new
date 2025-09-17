@@ -1,0 +1,152 @@
+        public async Task<string> GeneratePdfFromFinancialData(string ocrResultId)
+        {
+            try
+            {
+                var ocrResult = await _databaseService.GetOcrResultByIdAsync(ocrResultId);
+                if (ocrResult == null)
+                {
+                    _logger.LogWarning("OCR result not found: {Id}", ocrResultId);
+                    return null;
+                }
+
+                // สร้างชื่อไฟล์ PDF
+                string fileName = $"financial-data-{ocrResultId}.pdf";
+                string filePath = GetPdfFilePath(fileName);
+
+                // สร้างไฟล์ PDF
+                using (PdfWriter writer = new PdfWriter(filePath))
+                {
+                    using (PdfDocument pdf = new PdfDocument(writer))
+                    {
+                        using (Document document = new Document(pdf))
+                        {
+                            // เพิ่มหัวข้อ
+                            document.Add(new Paragraph("ข้อมูลทางการเงิน")
+                                .SetTextAlignment(TextAlignment.CENTER)
+                                .SetFontSize(20));
+
+                            // เพิ่มข้อมูลทั่วไป
+                            if (ocrResult.FinancialData != null)
+                            {
+                                // ข้อมูลองค์กร
+                                if (!string.IsNullOrEmpty(ocrResult.FinancialData.Department))
+                                {
+                                    document.Add(new Paragraph($"หน่วยงาน: {ocrResult.FinancialData.Department}"));
+                                }
+
+                                // ประเภทเอกสาร
+                                if (!string.IsNullOrEmpty(ocrResult.FinancialData.DocumentType))
+                                {
+                                    document.Add(new Paragraph($"ประเภทเอกสาร: {ocrResult.FinancialData.DocumentType}"));
+                                }
+
+                                // เพิ่มข้อมูลอ้างอิง
+                                document.Add(new LineSeparator(new SolidLine()));
+                                
+                                Paragraph referenceHeader = new Paragraph("ข้อมูลอ้างอิง:");
+                                referenceHeader.SetFontSize(16);
+                                referenceHeader.SetBold();
+                                document.Add(referenceHeader);
+
+                                // เลขที่เอกสาร
+                                if (!string.IsNullOrEmpty(ocrResult.FinancialData.DocumentNumber))
+                                {
+                                    document.Add(new Paragraph($"เลขที่เอกสาร: {ocrResult.FinancialData.DocumentNumber}"));
+                                }
+
+                                // เลขประจำตัวผู้เสียภาษี
+                                if (!string.IsNullOrEmpty(ocrResult.FinancialData.TaxId))
+                                {
+                                    document.Add(new Paragraph($"เลขประจำตัวผู้เสียภาษี: {ocrResult.FinancialData.TaxId}"));
+                                }
+
+                                // ชื่อผู้นำของเข้า/ผู้ส่งของออก
+                                if (!string.IsNullOrEmpty(ocrResult.FinancialData.PersonName))
+                                {
+                                    document.Add(new Paragraph($"ชื่อ: {ocrResult.FinancialData.PersonName}"));
+                                }
+
+                                // เลขที่ใบขนสินค้า
+                                if (!string.IsNullOrEmpty(ocrResult.FinancialData.CustomsDeclarationNumber))
+                                {
+                                    document.Add(new Paragraph($"เลขที่ใบขนสินค้า: {ocrResult.FinancialData.CustomsDeclarationNumber}"));
+                                }
+
+                                // เลขที่ชำระอากร/วันเดือนปี
+                                if (!string.IsNullOrEmpty(ocrResult.FinancialData.CustomsPaymentNumber))
+                                {
+                                    document.Add(new Paragraph($"เลขที่ชำระอากร: {ocrResult.FinancialData.CustomsPaymentNumber}"));
+                                }
+
+                                if (!string.IsNullOrEmpty(ocrResult.FinancialData.CustomsPaymentDate))
+                                {
+                                    document.Add(new Paragraph($"วันที่ชำระอากร: {ocrResult.FinancialData.CustomsPaymentDate}"));
+                                }
+
+                                // เพิ่มข้อมูลรายการ
+                                document.Add(new LineSeparator(new SolidLine()));
+                                
+                                Paragraph itemsHeader = new Paragraph("รายการค่าใช้จ่าย:");
+                                itemsHeader.SetFontSize(16);
+                                itemsHeader.SetBold();
+                                document.Add(itemsHeader);
+
+                                // อากรขาเข้า
+                                if (ocrResult.FinancialData.ImportDuty.HasValue && ocrResult.FinancialData.ImportDuty.Value > 0)
+                                {
+                                    document.Add(new Paragraph($"อากรขาเข้า: {ocrResult.FinancialData.ImportDuty.Value:N2} บาท"));
+                                }
+
+                                // ภาษีมูลค่าเพิ่ม
+                                if (ocrResult.FinancialData.Vat.HasValue && ocrResult.FinancialData.Vat.Value > 0)
+                                {
+                                    document.Add(new Paragraph($"ภาษีมูลค่าเพิ่ม: {ocrResult.FinancialData.Vat.Value:N2} บาท"));
+                                }
+
+                                // ค่าธรรมเนียมอื่นๆ
+                                if (ocrResult.FinancialData.OtherFees?.Count > 0)
+                                {
+                                    document.Add(new Paragraph("ค่าธรรมเนียมอื่นๆ:"));
+                                    foreach (var fee in ocrResult.FinancialData.OtherFees)
+                                    {
+                                        document.Add(new Paragraph($"    - {fee.Key}: {fee.Value:N2} บาท"));
+                                    }
+                                }
+
+                                // เพิ่มยอดรวม
+                                document.Add(new LineSeparator(new SolidLine()));
+                                
+                                Paragraph totalHeader = new Paragraph("ยอดรวม:");
+                                totalHeader.SetFontSize(16);
+                                totalHeader.SetBold();
+                                document.Add(totalHeader);
+
+                                // จำนวนเงินรวม
+                                Paragraph totalAmount = new Paragraph($"ยอดรวมทั้งสิ้น: {ocrResult.FinancialData.TotalAmount:N2} {ocrResult.FinancialData.Currency ?? "บาท"}");
+                                totalAmount.SetFontSize(14);
+                                totalAmount.SetBold();
+                                document.Add(totalAmount);
+
+                                // จำนวนเงินเป็นตัวอักษร
+                                if (!string.IsNullOrEmpty(ocrResult.FinancialData.TotalAmountText))
+                                {
+                                    document.Add(new Paragraph($"({ocrResult.FinancialData.TotalAmountText})"));
+                                }
+                            }
+                            else
+                            {
+                                document.Add(new Paragraph("ไม่พบข้อมูลทางการเงิน"));
+                            }
+                        }
+                    }
+                }
+
+                _logger.LogInformation("Financial data PDF generated successfully: {FilePath}", filePath);
+                return fileName;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating PDF from financial data: {Id}", ocrResultId);
+                return null;
+            }
+        }
